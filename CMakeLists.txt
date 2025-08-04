@@ -5,13 +5,14 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_CXX_COMPILER /usr/bin/mpicxx)
 set(LINKER_LANGUAGE CXX)
 
-#set(Trilinos_DIR "/home/sibusiso/Workspace/project_trilinos/lib/cmake/Trilinos")
-set(Trilinos_DIR "/home/smabuza/Workspace/project_trilinos/lib/cmake/Trilinos")
+set(Trilinos_DIR "$ENV{SOFTWARE}/trilinos/lib/cmake/Trilinos")
 message(STATUS "Looking for Trilinos")
 find_package(Trilinos CONFIG REQUIRED)
 if( Trilinos_FOUND )
   message(STATUS "Found Trilinos!")
 endif()
+
+
 
 set(PETSCFEM_LIBS "/home/smabuza/Workspace/usr/lib")
 # set(CMAKE_CXX_FLAGS "-std=c++0x -O3 -lmpi -L${PETSCFEM_LIBS} -lparmetis -lmetis -lboost_system -lboost_filesystem -lboost_program_options -lpetsc -Wall -Wextra")
