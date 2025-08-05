@@ -1,6 +1,6 @@
-project(scalar)
+project(hlangana)
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 4)
 
 set(CMAKE_CXX_COMPILER /usr/bin/mpicxx)
 set(LINKER_LANGUAGE CXX)
@@ -12,27 +12,29 @@ if( Trilinos_FOUND )
   message(STATUS "Found Trilinos!")
 endif()
 
+# Some serial impl in the hydrofem library
+set(HYDROFEM_DIR "$ENV{PROJECTS}/research/cfd/")
 
-
-set(PETSCFEM_LIBS "/home/smabuza/Workspace/usr/lib")
 # set(CMAKE_CXX_FLAGS "-std=c++0x -O3 -lmpi -L${PETSCFEM_LIBS} -lparmetis -lmetis -lboost_system -lboost_filesystem -lboost_program_options -lpetsc -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "-std=c++0x -O3 -lmpi -L${PETSCFEM_LIBS} -lparmetis -lmetis -lboost_system -lboost_filesystem -lboost_program_options")
+set(CMAKE_CXX_FLAGS "-O3 -lmpi -L${PETSCFEM_LIBS} -lparmetis -lmetis -lboost_program_options")
 
-
-set(LINEAR_SOLVERS "../IML/")
-set(DEPS_HEADERS "../")
+set(CORE "./core")
+set(DISC "./disc")
+set(MESH "./mesh")
+set(LINEAR "./linear")
 set(PROJECT_HEADERS "./")
-set(PETSCFEM_HEADERS "/home/smabuza/Workspace/usr/include")
-set(TVMET_HEADERS "${PETSCFEM_HEADERS}/tvmet")
-set(MPI_STUFF "/usr/include/openmpi")
 
-include_directories(${MPI_STUFF} ${DEPS_HEADERS} ${LINEAR_SOLVERS} ${PROJECT_HEADERS} ${PETSCFEM_HEADERS} ${TVMET_HEADERS} ${Trilinos_INCLUDE_DIRS})
+include_directories(${CORE} ${DISC} ${LINEAR} ${PROJECT_HEADERS} ${MESH} ${Trilinos_INCLUDE_DIRS})
 link_directories(${Trilinos_LIBRARY_DIRS})
 
-file(GLOB SOURCES "${DEPS_HEADERS}*.cpp" "${DEPS_HEADERS}*.hpp" "${PROJECT_HEADERS}*.cpp" "${PROJECT_HEADERS}*.hpp")
+file(GLOB SOURCES "${CORE}/*.cpp"
+                  "${DISC}/*.cpp"
+                  "${MESH}/*.cpp"
+                  "${LINEAR}/*.cpp"
+                  "${PROJECT_HEADERS}*.cpp")
 
-add_executable(scalar ${SOURCES})
+add_executable(hlangana ${SOURCES})
 
-target_link_libraries(scalar LINK_PUBLIC ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} parmetis metis boost_system boost_filesystem boost_program_options)
+target_link_libraries(hlangana LINK_PUBLIC ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} parmetis metis boost_program_options)
 
-install(TARGETS scalar RUNTIME DESTINATION bin)
+install(TARGETS hlangana RUNTIME DESTINATION bin)
