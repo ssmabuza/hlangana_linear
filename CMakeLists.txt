@@ -1,11 +1,22 @@
-project(hlangana)
+# @HEADER
+# ****************************************************************************
+#                Hlangana: Copyright S. Mabuza Enterprises LLC
+# 
+# Distributed under BSD 3-clause license (See accompanying file Copyright.txt)
+# ****************************************************************************
+# @HEADER
 
-cmake_minimum_required(VERSION 4)
+cmake_minimum_required(VERSION 4.0.0)
+
+project(hlangana)
 
 set(CMAKE_CXX_COMPILER /usr/bin/mpicxx)
 set(LINKER_LANGUAGE CXX)
 
-set(Trilinos_DIR "$ENV{SOFTWARE}/trilinos/lib/cmake/Trilinos")
+set(SOFTWARE "$ENV{SOFTWARE}")
+set(PROJECTS "$ENV{PROJECTS}")
+
+set(Trilinos_DIR "${SOFTWARE}/trilinos/lib/cmake/Trilinos")
 message(STATUS "Looking for Trilinos")
 find_package(Trilinos CONFIG REQUIRED)
 if( Trilinos_FOUND )
@@ -13,10 +24,20 @@ if( Trilinos_FOUND )
 endif()
 
 # Some serial impl in the hydrofem library
-set(HYDROFEM_DIR "$ENV{PROJECTS}/research/cfd/")
+set(HYDROFEM_DIR "${SOFTWARE}/hydrofem")
+set(HYDROFEM_INCLUDE_DIRS "${HYDROFEM_DIR}/include")
+set(HYDROFEM_LIBRARY_DIRS "${HYDROFEM_DIR}/lib")
+set(HYDROFEM_LIBRARIES hydrofem)
 
-# set(CMAKE_CXX_FLAGS "-std=c++0x -O3 -lmpi -L${PETSCFEM_LIBS} -lparmetis -lmetis -lboost_system -lboost_filesystem -lboost_program_options -lpetsc -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "-O3 -lmpi -L${PETSCFEM_LIBS} -lparmetis -lmetis -lboost_program_options")
+set(PARMETIS_DIR "${SOFTWARE}/parmetis/")
+set(PARMETIS_INCLUDE_DIRS "${SOFTWARE}/parmetis/include")
+set(PARMETIS_LIBRARY_DIRS "${SOFTWARE}/parmetis/lib")
+
+set(EIGEN_DIR "${SOFTWARE}/eigen")
+set(EIGEN_INCLUDE_DIRS "${EIGEN_DIR}/include/eigen3")
+set(EIGEN_LIBRARY_DIRS "${EIGEN_DIR}/lib")
+
+set(CMAKE_CXX_FLAGS "-O3 -lmpi -lparmetis -lmetis -lboost_program_options -L${PARMETIS_LIBRARY_DIRS}")
 
 set(CORE "./core")
 set(DISC "./disc")
@@ -24,7 +45,7 @@ set(MESH "./mesh")
 set(LINEAR "./linear")
 set(PROJECT_HEADERS "./")
 
-include_directories(${CORE} ${DISC} ${LINEAR} ${PROJECT_HEADERS} ${MESH} ${Trilinos_INCLUDE_DIRS})
+include_directories(${CORE} ${DISC} ${LINEAR} ${PROJECT_HEADERS} ${MESH} ${Trilinos_INCLUDE_DIRS} ${HYDROFEM_INCLUDE_DIRS} ${PARMETIS_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS})
 link_directories(${Trilinos_LIBRARY_DIRS})
 
 file(GLOB SOURCES "${CORE}/*.cpp"
@@ -35,6 +56,6 @@ file(GLOB SOURCES "${CORE}/*.cpp"
 
 add_executable(hlangana ${SOURCES})
 
-target_link_libraries(hlangana LINK_PUBLIC ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} parmetis metis boost_program_options)
+target_link_libraries(hlangana LINK_PUBLIC ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${HYDROFEM_LIBRARIES} parmetis metis boost_program_options)
 
 install(TARGETS hlangana RUNTIME DESTINATION bin)

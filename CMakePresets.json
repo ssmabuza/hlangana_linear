@@ -1,16 +1,15 @@
-
 {
   "version": 4,
   "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 19,
+    "major": 4,
+    "minor": 0,
     "patch": 0
   },
   "configurePresets": [
     {
       "name": "default",
       "hidden": true,
-      "generator": "Ninja",
+      "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"

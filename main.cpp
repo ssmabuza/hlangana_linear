@@ -1,6 +1,6 @@
 // @HEADER
 // ****************************************************************************
-//                Hlangana: Copyright S. Mabuza
+//                Hlangana: Copyright S. Mabuza Enterprises LLC
 //
 // Distributed under BSD 3-clause license (See accompanying file Copyright.txt)
 // ****************************************************************************
@@ -52,6 +52,9 @@
 #include <Teuchos_ScalarTraits.hpp>
 #include <Tpetra_Details_PackTraits.hpp>
 
+#include <Hydrofem_Mesh.hpp>
+#include <Hydrofem_Mesh2D.hpp>
+
 int main(int argc, char **argv)
 {
 
@@ -67,8 +70,8 @@ int main(int argc, char **argv)
   try
   {
     // The problem is defined on a 2D grid, global size is nx * nx.
-    Teuchos::RCP<Grid2D> grid = Teuchos::rcp(new Grid2D());
-    grid->GenerateTriangulatedUniformRectangularMesh(4, 4, 5.0, 5.0, typeUnionJack);
+    Teuchos::RCP<hydrofem::Mesh> mesh = Teuchos::rcp(new hydrofem::Mesh2D());
+    //    mesh->GenerateTriangulatedUniformRectangularMesh(4, 4, 5.0, 5.0, typeUnionJack);
     if (myRank == 0)
       std::cout << "Serial mesh with " << grid->m_elems.size() << " elements." << std::endl;
 
