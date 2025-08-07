@@ -1,6 +1,6 @@
 // @HEADER
 // ****************************************************************************
-//                Hlangana: Copyright S. Mabuza
+//                Hlangana: Copyright S. Mabuza Enterprises LLC
 //
 // Distributed under BSD 3-clause license (See accompanying file Copyright.txt)
 // ****************************************************************************
