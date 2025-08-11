@@ -11,8 +11,8 @@
 namespace hlangana
 {
 
-  ParMesh2D::ParMesh2D(const Teuchos::RCP<hydrofem::Mesh2D> &mesh,
-                       const Teuchos::RCP<Teuchos::MpiComm<int>> &tcomm) : m_comm(tcomm)
+  ParMesh2D::ParMesh2D(const hydrofem::Mesh2D &mesh,
+                       const Teuchos::MpiComm<int> &comm)
   {
     // initilization
     //@{
@@ -28,17 +28,17 @@ namespace hlangana
     // get MPI information
     //@{
     int size, rank;
-    MPI_Comm comm = Teuchos::getRawMpiComm(*tcomm);
-    rank = tcomm->getRank();
-    size = tcomm->getSize();
+    MPI_Comm rawComm = Teuchos::getRawMpiComm(comm);
+    rank = comm.getRank();
+    size = comm.getSize();
     //@}
 
     // distribution of elements to processes
     //@{
     idx_t elmdist[size + 1];
-    int nelemperp = std::ceil(mesh->numOfElements() / Teuchos::as<double>(size));
+    int nelemperp = std::ceil(mesh.numOfElements() / Teuchos::as<double>(size));
     int count = 0;
-    int toomuch = nelemperp * size - mesh->m_elems.size();
+    int toomuch = nelemperp * size - mesh.numOfElements();
 
     for (int proc = 0; proc < size; proc++)
     {
@@ -50,11 +50,11 @@ namespace hlangana
       }
 
       count += nelemperp;
-      if (count >= int(mesh->m_elems.size()))
-        count = mesh->m_elems.size();
+      if (count >= int(mesh.numOfElements()))
+        count = mesh.numOfElements();
     }
 
-    elmdist[size] = mesh->m_elems.size();
+    elmdist[size] = mesh.numOfElements();
     int nparts = size;
     //@}
 
@@ -63,16 +63,16 @@ namespace hlangana
     int n_elems_init_loc = elmdist[rank + 1] - elmdist[rank];
     int tot_num_points = 0;
     for (int i = 0; i < n_elems_init_loc; i++)
-      tot_num_points += mesh->m_elems[elmdist[rank] + i]->m_nodes.size();
+      tot_num_points += mesh.getElement(elmdist[rank] + i).getNodes().size();
 
     idx_t eptr[n_elems_init_loc + 1];
     idx_t eind[tot_num_points];
     for (int i = 0; i < n_elems_init_loc; i++)
     {
-      int loc_num_points = mesh->m_elems[elmdist[rank] + i]->m_nodes.size();
+      int loc_num_points = mesh.getElement(elmdist[rank] + i).getNodes().size();
       eptr[i] = i * loc_num_points;
       for (int point_ind(0); point_ind < loc_num_points; ++point_ind)
-        eind[i * loc_num_points + point_ind] = mesh->m_elems[elmdist[rank] + i]->m_nodes[point_ind];
+        eind[i * loc_num_points + point_ind] = mesh.getElement(elmdist[rank] + i).getNode(point_ind);
     }
     eptr[n_elems_init_loc] = tot_num_points;
 
@@ -94,7 +94,7 @@ namespace hlangana
     ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, elmwgt,
                              &wgtflag, &numflag, &ncon, &ncommonnodes,
                              &nparts, tpwgts, ubvec, &options,
-                             &edgecut, part, &comm);
+                             &edgecut, part, &rawComm);
 
     if (rank == 0)
     {
@@ -102,7 +102,7 @@ namespace hlangana
     }
 
     // set number of global elements in mesh
-    _n_elems = mesh->numOfElements();
+    _n_elems = mesh.numOfElements();
 
     // determine number of local nodes
     int n_elems_proc[size];
@@ -117,7 +117,7 @@ namespace hlangana
     }
 
     int n_elems_fromproc[size];
-    MPI_Alltoall(n_elems_proc, 1, MPI_INT, n_elems_fromproc, 1, MPI_INT, comm);
+    MPI_Alltoall(n_elems_proc, 1, MPI_INT, n_elems_fromproc, 1, MPI_INT, rawComm);
 
     _n_elems_local = 0;
     for (int proc = 0; proc < size; proc++)
@@ -126,18 +126,18 @@ namespace hlangana
     }
 
     // send the indices to the nodes
-    std::vector<bool> handeled;
-    handeled.reserve(n_elems_init_loc);
+    std::vector<bool> handled;
+    handled.reserve(n_elems_init_loc);
 
     for (int i = 0; i < n_elems_init_loc; i++)
     {
-      handeled.push_back(false);
+      handled.emplace_back(false);
     }
 
     buf.reserve(n_elems_init_loc);
     for (int i = 0; i < n_elems_init_loc; i++)
     {
-      if (!handeled[i])
+      if (!handled[i])
       {
         int n = 0;
         int p = part[i];
@@ -146,7 +146,7 @@ namespace hlangana
           if (part[j] == p)
           {
             buf.push_back(elmdist[rank] + j);
-            handeled[j] = true;
+            handled[j] = true;
             n++;
           }
         }
@@ -156,13 +156,13 @@ namespace hlangana
 
           MPI_Request request;
           int rc;
-          rc = MPI_Isend(&buf[buf.size() - n], n, MPI_INT, p, 0, comm, &request);
+          rc = MPI_Isend(&buf[buf.size() - n], n, MPI_INT, p, 0, rawComm, &request);
           assert(rc == MPI_SUCCESS);
         }
         else
         {
 
-          for (unsigned int j = buf.size() - n; j < buf.size(); j++)
+          for (std::size_t j = buf.size() - n; j < buf.size(); j++)
           {
             loc2glob.push_back(buf[j]);
           }
@@ -174,7 +174,7 @@ namespace hlangana
     {
       int buf[_n_elems_local];
       MPI_Status status;
-      MPI_Recv(buf, _n_elems_local, MPI_INT, MPI_ANY_SOURCE, 0, comm, &status);
+      MPI_Recv(buf, _n_elems_local, MPI_INT, MPI_ANY_SOURCE, 0, rawComm, &status);
       int count;
       MPI_Get_count(&status, MPI_INT, &count);
       for (int i = 0; i < count; i++)
@@ -187,7 +187,7 @@ namespace hlangana
 
     // global to local mapping; should be avoided
     int ntlocals[size];
-    MPI_Allgather(&_n_elems_local, 1, MPI_INT, ntlocals, 1, MPI_INT, comm);
+    MPI_Allgather(&_n_elems_local, 1, MPI_INT, ntlocals, 1, MPI_INT, rawComm);
 
     int locs2glob[_n_elems];
     int displs[size];
@@ -198,7 +198,7 @@ namespace hlangana
     }
 
     displown = displs[rank];
-    MPI_Allgatherv(&loc2glob[0], loc2glob.size(), MPI_INT, locs2glob, ntlocals, displs, MPI_INT, comm);
+    MPI_Allgatherv(&loc2glob[0], loc2glob.size(), MPI_INT, locs2glob, ntlocals, displs, MPI_INT, rawComm);
 
     if (rank == 0)
     {
@@ -231,10 +231,9 @@ namespace hlangana
 
     std::vector<bool> needghost;
     needghost.reserve(_n_elems);
-
     for (int i = 0; i < _n_elems; i++)
     {
-      needghost.push_back(false);
+      needghost.emplace_back(false);
     }
 
     nghosts.resize(_n_elems_local);
@@ -247,9 +246,9 @@ namespace hlangana
     for (int i = 0; i < _n_elems_local; i++)
     {
       int iglob = loc2glob[i];
-      for (std::size_t k(0); k < mesh->m_elems[iglob]->m_nodes.size(); ++k)
+      for (std::size_t k(0); k < mesh.getElement(iglob).getNodes().size(); ++k)
       {
-        int pointInd = mesh->m_elems[iglob]->m_nodes[k];
+        int pointInd = mesh.getElement(iglob).getNode(k);
         // check if the elements are already in the current proc
         // if yes, skip the if no, add then and increase number of ghosted elements and set glob2loc indexes
         auto &node_stencil_ = mesh->m_stencil[pointInd];
@@ -416,7 +415,7 @@ namespace hlangana
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  Parmesh2D::~Parmesh2D()
+  ParMesh2D::~ParMesh2D()
   {
     for (std::size_t elem_ind(0); elem_ind < m_elems.size(); ++elem_ind)
     {

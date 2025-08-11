@@ -33,8 +33,8 @@ namespace hlangana
     using SES = hydrofem::SearchEdgeStruct;
 
     //! Ctor from a serial mesh with similar interface
-    ParMesh2D(const Teuchos::RCP<hydrofem::Mesh2D> &mesh,
-              const Teuchos::RCP<Teuchos::MpiComm<int>> &tcomm);
+    ParMesh2D(const hydrofem::Mesh2D &mesh,
+              const Teuchos::MpiComm<int> &tcomm);
 
     //! Dtor
     ~ParMesh2D();
@@ -170,8 +170,6 @@ namespace hlangana
     //! gets index of edge (-1 if not present)
     int getIndexOfTheEdge(const int node1, const int node2);
 
-    //! parallel communicator
-    const Teuchos::RCP<Teuchos::MpiComm<int>> m_comm;
     //@}
 
   protected:
